@@ -1,0 +1,160 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.quiz-wrap{padding:1.5rem 0}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;gap:12px;flex-wrap:wrap}
+.progress-bar{height:6px;background:var(--color-border-tertiary);border-radius:3px;overflow:hidden;flex:1;min-width:120px}
+.progress-fill{height:100%;background:#1D9E75;border-radius:3px;transition:width .4s ease}
+.q-counter{font-size:13px;color:var(--color-text-secondary);white-space:nowrap}
+.score-badge{font-size:13px;font-weight:500;color:var(--color-text-primary);white-space:nowrap}
+.question-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.q-type-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:var(--border-radius-md);margin-bottom:.75rem;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.q-text{font-size:15px;font-weight:500;line-height:1.5;color:var(--color-text-primary)}
+.options{display:flex;flex-direction:column;gap:8px;margin-top:1rem}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:.75rem 1rem;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);transition:background .15s,border-color .15s;text-align:left;font-size:14px;color:var(--color-text-primary);line-height:1.4;width:100%}
+.opt:hover:not(.locked){background:var(--color-background-secondary);border-color:var(--color-border-primary)}
+.opt.selected{border-color:#378ADD;background:#E6F1FB}
+.opt.correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A}
+.opt.wrong{border-color:#A32D2D;background:#FCEBEB;color:#791F1F}
+.opt.reveal-correct{border-color:#3B6D11;background:#EAF3DE;color:#27500A}
+.opt-letter{font-weight:500;font-size:13px;min-width:18px;padding-top:1px}
+.feedback{margin-top:.75rem;padding:.75rem 1rem;border-radius:var(--border-radius-md);font-size:13px;line-height:1.5}
+.feedback.ok{background:#EAF3DE;color:#27500A;border:0.5px solid #639922}
+.feedback.ko{background:#FCEBEB;color:#791F1F;border:0.5px solid #A32D2D}
+.btn-row{display:flex;gap:10px;margin-top:1rem;flex-wrap:wrap}
+button{padding:.6rem 1.25rem;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);font-size:14px;cursor:pointer;transition:background .15s}
+button:hover{background:var(--color-background-secondary)}
+button.primary{background:#1D9E75;color:#fff;border-color:#0F6E56}
+button.primary:hover{background:#0F6E56}
+.results{text-align:center;padding:2rem 1rem}
+.big-score{font-size:48px;font-weight:500;color:var(--color-text-primary)}
+.sub-score{font-size:15px;color:var(--color-text-secondary);margin:.5rem 0 1.5rem}
+.mention{font-size:14px;font-weight:500;padding:.5rem 1.25rem;border-radius:var(--border-radius-lg);display:inline-block;margin-bottom:1.5rem}
+.recap{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:1.5rem}
+.recap th{text-align:left;padding:.5rem .75rem;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);font-weight:500}
+.recap td{padding:.5rem .75rem;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);vertical-align:top}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot-ok{background:#3B6D11}.dot-ko{background:#A32D2D}
+.hint{font-size:12px;color:var(--color-text-tertiary);margin-top:.5rem}
+</style>
+<h2 class="sr-only">Quiz interactif — Généralités sur les plaies chroniques</h2>
+<div class="quiz-wrap" id="app"></div>
+<script>
+const QS=[
+{q:"Quelles conditions sont nécessaires pour une cicatrisation optimale ?",type:"multi",opts:["Milieu chaud et humide","Utilisation d'antiseptiques","Contexte nutritionnel satisfaisant","Décharge adaptée","Présence de nécrose"],correct:[0,2,3],exp:"La cicatrisation est optimale dans un milieu chaud et humide, un contexte nutritionnel et vasculaire satisfaisant, et avec une décharge adaptée."},
+{q:"Quelle affirmation concernant les soins d'une plaie chronique est JUSTE ?",type:"single",opts:["Le soin doit être stérile","On utilise des antiseptiques dans les plaies chroniques","Le soin est propre, mais pas stérile","Il faut laver à l'eau chaude uniquement"],correct:[2],exp:"Le soin d'une plaie chronique est un soin propre, pas stérile. Les antiseptiques ne sont pas indiqués dans les plaies chroniques."},
+{q:"Pour décrire le lit d'une plaie, on utilise la classification colorimétrique. Quelles couleurs correspondent à : bourgeon, fibrine, nécrose ?",type:"single",opts:["Rouge, jaune, noir","Blanc, rouge, jaune","Noir, vert, rouge","Jaune, blanc, rouge"],correct:[0],exp:"La classification colorimétrique : rouge = tissu de granulation (bourgeon), jaune = fibrine, noir = nécrose."},
+{q:"Comment mesure-t-on un décollement cutané ?",type:"single",opts:["Avec un scanner IRM","En enfonçant un écouvillon dans le décollement puis en reportant la mesure sur une réglette","Par palpation manuelle uniquement","Avec une sonde à ultrasons"],correct:[1],exp:"On enfonce l'écouvillon dans le décollement, puis on reporte la mesure sur une réglette."},
+{q:"Parmi les techniques de détersion suivantes, laquelle fait appel aux larves ?",type:"single",opts:["Détersion autolytique","Détersion mécanique","Détersion chimique","Détersion biologique"],correct:[3],exp:"La larvothérapie (utilisation de larves) est une technique de détersion biologique."},
+{q:"Dans quels cas la détersion d'une escarre est-elle formellement CONTRE-INDIQUÉE ?",type:"single",opts:["Escarre avec sillon d'élimination","Hématome disséquant","Escarre sèche sans signe infectieux et IPS inconnu","Escarre avec tissu de granulation"],correct:[2],exp:"L'escarre sèche sans complication et avec une vascularisation incertaine (IPS inconnu ou bas) ne doit pas être détersée sans bilan vasculaire préalable."},
+{q:"Quelle est la définition d'un ulcère de jambe ?",type:"single",opts:["Toute plaie de la jambe","Plaie de la jambe ne cicatrisant pas au bout de 6 semaines","Plaie de la jambe avec présence de nécrose","Plaie de la jambe chez une personne de plus de 65 ans"],correct:[1],exp:"Un ulcère de jambe est défini comme une plaie de la jambe ne cicatrisant pas au bout de 6 semaines."},
+{q:"Quelle est la prévalence de l'ulcère de jambe chez les personnes de plus de 80 ans ?",type:"single",opts:["1 %","3 %","4 à 5 %","10 %"],correct:[2],exp:"La prévalence est de 1 % dans la population générale, 3 % après 65 ans, et 4 à 5 % après 80 ans."},
+{q:"Parmi les arguments suivants, lesquels sont en faveur d'un ulcère d'origine VEINEUSE ?",type:"multi",opts:["Localisation face interne de jambe, péri-malléolaire","Ulcère très douloureux, creusant","Bords irréguliers et suintant","Antécédent de stripping de varices","Pouls périphériques absents"],correct:[0,2,3],exp:"L'ulcère veineux est localisé en face interne/péri-malléolaire, peu douloureux, suintant, à bords irréguliers. Les antécédents veineux l'orientent."},
+{q:"Comment calcule-t-on l'Index de Pression Systolique (IPS) ?",type:"single",opts:["PAS humérale / PAS cheville","PAS cheville / PAS humérale","PAS cheville + PAS humérale / 2","PAS cheville − PAS humérale"],correct:[1],exp:"IPS = PAS cheville / PAS humérale. Il est mesuré avec un tensiomètre et un Doppler continu."},
+{q:"Un IPS à 0,4 indique :",type:"single",opts:["Un état normal","Une médiacalcose","Une artériopathie oblitérante sévère (AOMI)","Une insuffisance veineuse simple"],correct:[2],exp:"Un IPS < 0,5 indique une AOMI sévère. La fourchette 0,9–1,3 est normale. > 1,3 évoque une médiacalcose."},
+{q:"Quelle est l'indication de compression pour un IPS compris entre 0,8 et 1,3 ?",type:"single",opts:["Pas de compression possible","Bandes à allongement court uniquement","Bandes multi-types recommandées","Compression chirurgicale uniquement"],correct:[2],exp:"Selon les recommandations HAS, les bandes multi-types sont indiquées pour un IPS entre 0,8 et 1,3."},
+{q:"Pourquoi ne faut-il pas utiliser de bandes à allongement long (> 100 %) pour l'ulcère veineux ?",type:"single",opts:["Elles sont trop chères","Elles ne sont pas remboursées","Elles ne sont pas indiquées dans cette situation","Elles provoquent systématiquement des infections"],correct:[2],exp:"Les bandes à allongement long ne sont pas indiquées pour le traitement de l'ulcère veineux."},
+{q:"Parmi les caractéristiques suivantes, lesquelles correspondent à l'ulcère d'origine ARTÉRIELLE ?",type:"multi",opts:["Très douloureux","Localisation péri-malléolaire, peu douloureux","Bords nets 'à l'emporte-pièce'","Creusant, avec exposition tendineuse possible","Présence de varices et dermite de stase"],correct:[0,2,3],exp:"L'ulcère artériel est très douloureux, à bords nets, creusant, avec possible exposition tendineuse, sur fond d'AOMI."},
+{q:"Quand faut-il biopsier un ulcère de jambe ? Cochez les bonnes indications.",type:"multi",opts:["Systématiquement après 1 mois","Suspicion de tumeur cutanée bourgeonnante","Évolution stagnante ou défavorable après 6 mois","Présence de fibrine dans le lit","Suspicion de dermatose inflammatoire sous-jacente"],correct:[1,2,4],exp:"La biopsie est indiquée en cas de suspicion de tumeur (aspect bourgeonnant, saignement) ou de dermatose inflammatoire, et si l'évolution est stagnante/défavorable > 6 mois."},
+{q:"Concernant les prélèvements bactériologiques sur un ulcère, quelle affirmation est VRAIE ?",type:"single",opts:["Un prélèvement local est systématique","La présence de germes est normale (colonisation) et ne nécessite pas de prélèvement local de routine","Un ECBU est indispensable","Il faut faire des hémocultures à chaque changement de pansement"],correct:[1],exp:"La présence de germes est normale sur un ulcère (colonisation). En règle, pas de prélèvement local de routine. Les hémocultures sont indiquées en cas de dermo-hypodermite bactérienne."},
+{q:"Concernant l'angiodermite nécrotique, quelles propositions sont JUSTES ?",type:"multi",opts:["Touche surtout les hommes jeunes","HTA présente dans 90 à 100 % des cas","Peau périphérique livédoïde","Exposition tendineuse et osseuse fréquente","Traitement : détersion + greffe en pastille"],correct:[1,2,4],exp:"L'angiodermite nécrotique touche surtout les femmes > 60 ans, avec HTA dans 90-100 % des cas, peau livédoïde, sans exposition tendineuse (≠ artériel). Traitement : détersion + greffe en pastille."},
+{q:"L'escarre est une plaie qui débute :",type:"single",opts:["De la surface vers la profondeur","De la profondeur vers la surface","Uniquement au niveau de la peau","Uniquement sur les muqueuses"],correct:[1],exp:"L'escarre est une plaie qui débute de la profondeur vers la surface, par compression entre deux plans durs entraînant une hypoxie tissulaire."},
+{q:"L'échelle de Braden évalue le risque d'escarre. Quels paramètres sont mesurés ?",type:"multi",opts:["Sensibilité","Humidité","Température cutanée","Mobilité","Nutrition","Frictions et cisaillements"],correct:[0,1,3,4,5],exp:"L'échelle de Braden évalue 6 items : sensibilité, humidité, activité, mobilité, nutrition, frictions et cisaillements. La température n'en fait pas partie."},
+{q:"Parmi ces situations, laquelle correspond à une dermite associée à l'incontinence (DAI) et non à une escarre ?",type:"single",opts:["Lésion du sacrum chez un patient alité depuis 3 jours","Lésion des convexités des fesses, aspect vernissé rouge, bilatérale","Lésion du talon avec nécrose sèche","Lésion de l'ischion chez un patient en fauteuil roulant"],correct:[1],exp:"La DAI siège sur les convexités (fesses, scrotum, racine des cuisses), aspect vernissé rouge, parfois kissing lesions bilatérales — à différencier de l'escarre liée à la pression."}
+];
+
+let cur=0,score=0,answered=false,userSel=[],history=[];
+
+function render(){
+  const app=document.getElementById('app');
+  if(cur>=QS.length){renderResults(app);return;}
+  const q=QS[cur];
+  const pct=Math.round((cur/QS.length)*100);
+  app.innerHTML=`
+<div class="header">
+  <div class="q-counter">Question ${cur+1} / ${QS.length}</div>
+  <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  <div class="score-badge"><i class="ti ti-star" aria-hidden="true"></i> ${score} pt${score>1?'s':''}</div>
+</div>
+<div class="question-card">
+  <span class="q-type-badge">${q.type==='multi'?'Choix multiples':'Choix unique'}</span>
+  <p class="q-text">${q.q}</p>
+  ${q.type==='multi'?'<p class="hint">Plusieurs réponses possibles</p>':''}
+  <div class="options" id="opts">
+    ${q.opts.map((o,i)=>`<button class="opt" id="opt-${i}" onclick="toggleOpt(${i})">${letter(i)}<span>${o}</span></button>`).join('')}
+  </div>
+  <div id="feedback"></div>
+  <div class="btn-row" id="btnrow">
+    <button class="primary" onclick="validate()">Valider</button>
+  </div>
+</div>`;
+}
+
+function letter(i){return['A','B','C','D','E','F'][i]}
+
+function toggleOpt(i){
+  if(answered)return;
+  const q=QS[cur];
+  const el=document.getElementById('opt-'+i);
+  if(q.type==='single'){
+    userSel=[];
+    document.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+    userSel=[i];el.classList.add('selected');
+  } else {
+    const idx=userSel.indexOf(i);
+    if(idx===-1){userSel.push(i);el.classList.add('selected');}
+    else{userSel.splice(idx,1);el.classList.remove('selected');}
+  }
+}
+
+function validate(){
+  if(!userSel.length)return;
+  answered=true;
+  const q=QS[cur];
+  const correct=q.correct;
+  const isOk=arrEq(userSel.slice().sort(),correct.slice().sort());
+  if(isOk)score++;
+  history.push({q:q.q,ok:isOk});
+  q.opts.forEach((_,i)=>{
+    const el=document.getElementById('opt-'+i);
+    el.classList.add('locked');
+    if(correct.includes(i))el.classList.add(userSel.includes(i)?'correct':'reveal-correct');
+    else if(userSel.includes(i))el.classList.add('wrong');
+  });
+  const fb=document.getElementById('feedback');
+  fb.innerHTML=`<div class="feedback ${isOk?'ok':'ko'}">${isOk?'<i class="ti ti-check" aria-hidden="true"></i> Bonne réponse !':'<i class="ti ti-x" aria-hidden="true"></i> Incorrect.'} ${q.exp}</div>`;
+  document.getElementById('btnrow').innerHTML=`<button class="primary" onclick="next()">Question suivante →</button>`;
+}
+
+function next(){
+  cur++;answered=false;userSel=[];render();
+}
+
+function arrEq(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
+
+function renderResults(app){
+  const pct=Math.round((score/QS.length)*100);
+  let mention,mc,tc;
+  if(pct>=85){mention='Excellent !';mc='#EAF3DE';tc='#27500A';}
+  else if(pct>=65){mention='Bien';mc='#E6F1FB';tc='#0C447C';}
+  else if(pct>=50){mention='À revoir';mc='#FAEEDA';tc='#633806';}
+  else{mention='Insuffisant';mc='#FCEBEB';tc='#791F1F';}
+  app.innerHTML=`
+<div class="results">
+  <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.5rem">Score final</p>
+  <div class="big-score">${score} / ${QS.length}</div>
+  <p class="sub-score">${pct} % de bonnes réponses</p>
+  <span class="mention" style="background:${mc};color:${tc}">${mention}</span>
+  <table class="recap">
+    <tr><th>#</th><th>Question</th><th>Résultat</th></tr>
+    ${history.map((h,i)=>`<tr><td>${i+1}</td><td>${h.q.substring(0,60)}…</td><td><span class="dot ${h.ok?'dot-ok':'dot-ko'}"></span>${h.ok?'Correct':'Incorrect'}</td></tr>`).join('')}
+  </table>
+  <button class="primary" onclick="restart()">Recommencer le quiz</button>
+</div>`;
+}
+
+function restart(){cur=0;score=0;answered=false;userSel=[];history=[];render();}
+
+render();
+</script>
